@@ -1,0 +1,439 @@
+#!/bin/bash
+
+## usage
+usage_exit() {
+    printf "\033[33mmyceph - management tool for ceph cluster\033[00m\n"
+    echo "usage: $filename {new|create|edit|status|start|stop} [mon|osd|mds]..."
+    exit
+}
+
+## continue or exit
+yes_or_no () {
+    while true; do
+	read yn
+	case $yn in
+	    [Yy] | yes)
+		return 0
+		;;
+	    [Nn] | no)
+		return 1
+		;;
+	    *)
+		printf "Please type 'yes' or 'no': "
+		;;
+	esac
+    done
+}
+
+## create osd, mon, mds & ceph.conf/keyring/monmap
+create_init() {
+    create_type=$1
+    para1=$2
+    # create functions
+    case $create_type in
+	osd)
+	    create_confirm
+	    create_chk_conf
+	    create_osd $para1
+	    ;;
+	mon)
+	    create_confirm
+	    create_chk_conf
+	    create_mon
+	    ;;
+	mds)
+	    create_confirm
+	    create_chk_conf
+	    create_mds
+	    ;;
+	cluster)
+	    echo "Create cluster by $ceph_conf, not yet"
+	    ;;
+	*)
+	    echo "usage: $filename create [osd|mon|mds|cluster]... "
+	    exit
+	    ;;
+    esac
+}
+
+## check before creating service
+create_confirm() {
+    printf "User:\t$user\nHost:\t$hostname\n"
+    printf "Do you want to create \033[31m$create_type\033[0m on this server (yes/no)? "
+    yes_or_no || exit
+}
+
+## copy ceph.conf & admin keyring to /etc/ceph
+create_chk_conf() {
+    conf_chk=0
+    sudo mkdir -p $ceph_dir
+    if [ -f $ceph_dir/$ceph_conf ]
+    then
+	echo "Use $ceph_dir/$ceph_conf."
+    elif [ -f $ceph_conf ]
+    then
+	sudo cp $ceph_conf $ceph_dir
+    else
+	echo "`pwd`/$ceph_conf not exist."
+	echo "You should prepare $ceph_conf in current directory."
+	conf_chk=1
+    fi
+    if [ -f $ceph_dir/$admin_key ]
+    then
+	echo "Use $ceph_dir/$admin_key."
+    elif [ -f $admin_key ]
+    then
+	sudo cp $admin_key $ceph_dir
+    else
+	echo "`pwd`/$admin_key not exist."
+	echo "You should prepare $admin_key in current directory."
+	conf_chk=1
+    fi
+    [ $conf_chk -eq 1 ] && echo "exit" && exit
+}
+
+## create monmap & monitor
+create_mon() {
+    mon_map=monmap
+    mon_key=ceph.mon.keyring
+    mon_dir="/var/lib/ceph/mon/ceph-$hostname"
+    echo "Monitor default directory: /var/lib/ceph/mon/ceph-$hostname"
+    sudo mkdir -p $mon_dir
+    if [ ! -f $mon_map ]
+    then
+	echo "`pwd`/monmap not exist."
+	echo "You should prepare $mon_map in current directory."
+    fi
+    if [ ! -f $mon_key ]
+    then
+	echo "`pwd`/$mon_key not exist."
+	echo "You should prepare $mon_key in current directory."
+    fi
+    monmaptool --print $mon_map >/dev/null 2>&1
+    [ $? -ne 0 ] && echo "File \"$moa_map\" error" && exit 	
+    sudo ceph-mon --mkfs -i $hostname --monmap $mon_map \
+	 --keyring $mon_key
+    sudo touch $mon_dir/done
+    sudo touch $mon_dir/sysvinit
+    sudo service ceph -a start mon
+}
+
+## create object storage daemon
+create_osd() {
+    del_unec_osd
+    set_osd_id
+    osd_dev=$1
+    osd_dir="/var/lib/ceph/osd/ceph-$osd_id"
+    echo "Use $osd_dir as Object Storage Device"
+    # for btrfs sudo mkfs.btrfs -f $osd_dev
+    sudo mkfs.ext4 -F $osd_dev
+    [ $? -ne 0 ] && echo "Disk error, please check it"
+    sudo mkdir -p $osd_dir
+    sudo mount $osd_dev $osd_dir
+    #ceph osd create
+    sudo ceph-osd -i $osd_id --mkfs --mkkey
+    sudo ceph auth add osd.$osd_id osd 'allow *' \
+	 mon 'allow profile osd' -i $osd_dir/keyring
+    sudo touch $osd_dir/sysvinit
+    sudo service ceph -a start osd.$osd_id
+}
+
+## check osd number & assign
+set_osd_id() {
+    osd_id=0
+    osd_num=0
+    osd_num=`ceph osd ls | tee tmp_osd_id_file | wc -l`
+    declare -i x=0
+    while [ $x -le $osd_num ]
+    do
+	grep $x tmp_osd_id_file >/dev/null
+	[ $? -eq 1 ] && osd_id=$x && break
+	x=x+1
+    done
+    rm tmp_osd_id_file
+    ceph osd create >/dev/null
+}
+
+## delete unnecessary osd_id
+del_unec_osd() {
+    osd_num=0
+    osd_num=`ceph osd ls | wc -l`
+    ceph osd tree | grep down | awk '$2 == 0 {print$1}' >del_osd_id
+    for id in `cat del_osd_id`
+    do
+	ceph osd rm $id
+	ceph auth del osd.$osd_id >/dev/null
+    done
+    rm del_osd_id
+}
+
+## create metadata server
+create_mds() {
+    mds_dir="/var/lib/ceph/mds/ceph-$hostname"
+    sudo mkdir -p $mds_dir
+    sudo ceph auth get-or-create mds.$hostname mds 'allow' \
+	 osd 'allow rwx' mon 'allow profile mds' \
+	| sudo tee $mds_dir/keyring
+    sudo touch $mds_dir/done
+    sudo touch $mds_dir/sysvinit
+    ceph osd pool create cephfs_data 100
+    ceph osd pool create cephfs_metadata 100
+    ceph fs new cephfs cephfs_metadata cephfs_data
+    sudo service ceph -a start mds
+}
+
+## edit monmap
+edit_init() {
+    edit_type=$1
+    case $edit_type in
+	monmap)
+	    edit_monmap $2
+	    ;;
+	osdtree)
+	    ceph osd tree
+	    ;;
+	cephfs)
+	    ;;
+	*)
+	    echo "usage: $filename edit [monmap|osdtree|cephfs]... "
+	    ;;
+    esac
+}
+
+## monmap add, rm & show
+edit_monmap() {
+    mon_map=monmap
+    mon_num=0
+    monmap_chk=0
+    monmap_option=$1
+    if [ -f $mon_map ]
+    then
+	monmaptool --print monmap >/dev/null 2>&1
+	monmap_chk=$?
+    else
+	echo "C: Create new monmap"
+	echo "F: choose monmap File"
+	echo "E: Exit"
+	printf ">> "
+	while true; do
+	    read monmap_select
+	    case $monmap_select in
+		[Cc])
+		    echo "Every Ceph Cluster has a unique uuid."
+		    echo "Creating a new monmap, you have to choose ceph.conf file"
+		    printf "Type file location (\"rand\" to use random uuid): "
+		    read fsid
+		    # for user use "enter key"
+		    test -z $fsid && echo "Do nothing & exit." && exit
+		    [ $fsid = rand ] && echo "fsid = `uuidgen`" >monmap && fsid=monmap
+		    test ! -f $fsid && printf "File \"$fsid\" not found.\nexit\n" && exit
+		    fsid=`grep fsid $fsid | sed 's/fsid//' | sed 's/=//'`
+		    test -z $fsid && echo "Fsid not found." && exit
+		    monmaptool --create --clobber --fsid $fsid $mon_map >/dev/null
+		    echo "Monitor map `pwd`/monmap generated."
+		    break
+		    ;;
+		[Ff])
+		    printf "Type monmap location: "
+		    read mon_map
+		    monmaptool --print $mon_map >/dev/null 2>&1
+		    monmap_chk=$?
+		    break
+		    ;;
+		[Ee])
+		    echo "Do nothing"
+		    exit
+		    ;;
+		*)
+		    echo "C: Create new monmap"
+		    echo "F: choose monmap File"
+		    echo "E: Exit"
+		    printf ">> "
+		    ;;
+	    esac
+	done
+    fi
+    [ $monmap_chk -ne 0 ] && echo "monmap error or file not found." && exit
+    if [ $monmap_option = add ]
+    then
+	echo "Adding monitor from monmap."
+	printf "Type monitor hostname & ip (saperated by space): "
+	read mon_host mon_ip
+	monmaptool --add $mon_host $mon_ip $mon_map >/dev/null
+	monmaptool --print $mon_map
+    elif [ $monmap_option = rm ]
+    then
+	echo "Removimg monitor from monmap."
+	printf "Type monitor hostname: "
+	read mon_host
+	monmaptool --rm $mon_host $mon_map >/dev/null
+	monmaptool --print $mon_map
+    elif [ $monmap_option = show ]
+    then
+	monmaptool --print $mon_map
+    else
+	echo "usage: $filename edit monmap [add|rm|show] "
+    fi
+}
+
+## deploy a new cluster
+new_cluster() {
+    new_conf
+    new_admin_key
+}
+
+## generate ceph.conf & monmap
+new_conf() {
+    printf "User:\t$user\nHost:\t$hostname\nHostIP:\t$hostip\n"
+    if [ -f $ceph_conf ]
+    then echo "$ceph_conf already exist in `pwd`"
+	 printf "Do you want to \033[31moverwrite\033[0m it (yes/no)? "
+	 yes_or_no || return 0
+    fi
+    fsid=`uuidgen`
+    # ceph.conf
+    echo "[global]" >$ceph_conf
+    echo "fsid = $fsid" >>$ceph_conf
+    echo "filestore xattr use omap = true" >>$ceph_conf
+    echo "osd pool default size = 3" >>$ceph_conf
+    echo "osd pool default pg num = 128" >>$ceph_conf
+    echo "mon initial members = $hostname" >>$ceph_conf
+    echo "mon host = $hostip" >>$ceph_conf
+    echo "" >>$ceph_conf
+    echo "[mon]" >>$ceph_conf
+    echo ";mon data = /var/lib/ceph/mon/\$name" >>$ceph_conf
+    echo ";mon clock drift allowed = .050" >>$ceph_conf
+    echo ";debug ms = 1" >>$ceph_conf
+    echo ";debug mon = 20" >>$ceph_conf
+    echo ";debug paxos = 20" >>$ceph_conf
+    echo ";debug auth = 20" >>$ceph_conf
+    echo "" >>$ceph_conf
+    echo "[mds]" >>$ceph_conf
+    echo ";debug ms = 1" >>$ceph_conf
+    echo ";debug mds = 20" >>$ceph_conf
+    echo ";debug journaler = 20" >>$ceph_conf
+    echo ";mds cache size = 100000" >>$ceph_conf
+    echo ";mds mem max = 1048576 # KB" >>$ceph_conf
+    echo "" >>$ceph_conf
+    echo "[osd]" >>$ceph_conf
+    echo ";osd data = /var/lib/ceph/osd/\$name" >>$ceph_conf
+    echo ";osd journal = /var/lib/ceph/osd/\$name/journal" >>$ceph_conf
+    echo ";osd journal size = 5120 # MB" >>$ceph_conf
+    echo "# If you want to run the journal on a tmpfs, disable DirectIO" >>$ceph_conf
+    echo ";journal dio = false" >>$ceph_conf
+    echo ";debug ms = 1" >>$ceph_conf
+    echo ";debug osd =20" >>$ceph_conf
+    echo ";debug filestore = 20" >>$ceph_conf
+    echo ";debug journal = 20" >>$ceph_conf
+    echo ";filestore queue max ops = 500" >>$ceph_conf
+    echo ";filestore merge threshold = 10" >>$ceph_conf
+    echo "" >>$ceph_conf
+    echo "[client]" >>$ceph_conf
+    echo "rbd cache = true" >>$ceph_conf
+    echo ";rbd cache size = 33554432 #Byte" >>$ceph_conf
+    echo ";rbd cache max dirty = 25165824" >>$ceph_conf
+    echo ";rbd cache target dirty = 16777216" >>$ceph_conf
+    # monmap create & overwrite
+    monmaptool --create --clobber --fsid $fsid monmap >/dev/null
+    echo ""
+    echo "Monmap used the same uuid with $ceph_conf."
+    echo "Configuration file `pwd`/$ceph_conf generated."
+    echo "Monitor map `pwd`/monmap generated."
+}
+
+## generate client.admin.keyring & ceph.mon.keyring
+new_admin_key() {
+    mon_key=ceph.mon.keyring
+    if [ -f $admin_key ]
+    then echo "`pwd`/admin_key already exits."
+	 printf "Do you want to \033[31moverwrite\033[0m it (yes/no)? "
+	 yes_or_no || return 0
+    fi
+    if [ -f $mon_key ]
+    then echo "`pwd`/$mon_key already exits."
+	 printf "Do you want to \033[31moverwrite\033[0m it (yes/no)? "
+	 yes_or_no || return 0
+    fi
+    ceph-authtool --create-keyring $admin_key \
+		  --gen-key -n client.admin --set-uid=0 \
+		  --cap mon 'allow *' --cap osd 'allow *' \
+		  --cap mds 'allow' >/dev/null
+    [ $? -eq 0 ] && echo "`pwd`/ceph.client.admin.keyring generated."
+    ceph-authtool --create-keyring $mon_key \
+		  --gen-key -n mon. --cap mon 'allow *' >/dev/null
+    [ $? -eq 0 ] && echo "`pwd`/ceph.mon.keyring generated."
+    ceph-authtool $mon_key --import-keyring \
+		  $admin_key >/dev/null
+    chmod +r $admin_key
+}
+
+## for testing some function
+t_e_s_t() {
+    haha="EEEEE"
+}
+
+## help & dash(-)
+while echo $1 | grep -q '^-'; do
+    case $1 in
+	-h | --help)
+	    echo "Creating a new cluster"
+	    echo "======================"
+	    echo "To create a new configuration file and secret key."
+	    echo ""
+	    echo "    \$ $0 new"
+	    exit
+	    ;;
+	*)
+	    echo "unrecognized option '$1'"
+	    usage_exit
+	    ;;
+    esac
+    shift
+done
+
+filename=$0
+command=$1
+para1=$2
+para2=$3
+para3=$4
+test -z $2 && paea1=0
+test -z $3 && para2=0
+test -z $4 && para3=0
+user=`whoami`
+hostname=`hostname -a`
+test -z  $hostname  && hostname=`hostname`
+hostip=`/sbin/ifconfig eth0 | grep "Bcast" \
+| sed 's/^[ \t]*inet addr://' | sed 's/[ \t]*Bcast:.*$//'`
+
+## main
+ceph_dir="/etc/ceph"
+ceph_conf=ceph.conf
+admin_key=ceph.client.admin.keyring
+
+case "$command" in
+    status)
+	ceph -s
+	;;
+    create)
+	create_init $para1 $para2 $para3
+	;;
+    edit)
+	edit_init $para1 $para2 $para3
+	;;
+    start)
+	sudo service ceph -a start
+	;;
+    stop)
+	sudo service ceph -a stop
+	;;
+    new)
+	new_cluster
+	;;
+    te)
+	t_e_s_t $para1 $para2 $para3 
+	del_unec_osd
+	;;
+    *)
+	usage_exit
+	;;
+esac

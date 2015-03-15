@@ -1,0 +1,105 @@
+#!/bin/bash
+
+ifconf=/sbin/ifconfig
+route=/sbin/route
+ethdev=eth0
+brName=br0
+# choose a ip address, netmask, gateway or leave a blank to detect.
+ethdevip=
+netmask=
+gateway=
+
+
+check_ovs(){
+which ovs-vsctl >/dev/null
+if [ $? -eq 1 ]
+then
+    echo "Need to install openvswitch-switch."
+    sudo aptitude update
+    sudo aptitude install openvswitch-switch -y
+fi
+}
+
+
+get_ethdev_info(){
+    # grep ethdev ip address
+    if [ -z $ethdevip ]
+    then
+	ethdevip=$($ifconf $ethdev | grep "inet addr" |\
+			  sed 's/^.*addr://g' | sed 's/Bcast.*$//g')
+    fi
+    # ip address exists?
+    if [ -z $ethdevip ]
+    then
+	echo "No IP address specified or detected."
+	echo "EXIT!"
+	exit 1
+    fi
+    # grep ethdev netmask
+    netmask=$($ifconf $ethdev | grep "Mask:" |\
+		     sed 's/^.*Mask://g')
+    # grep ethdev gateway
+    gateway=$($route -n | grep $ethdev | grep "UG" | awk '{print $2}')
+}
+
+
+detect_ethdev(){
+    ethdevlist=$($ifconf -a | grep eth | sed 's/Link.*//g')
+}
+
+
+create_interfaces(){
+    interfaces=interfaces
+    echo "auto lo" >${interfaces}
+    echo "iface lo inet loopback" >>${interfaces}
+    echo "" >>${interfaces}
+    echo "allow-hotplug br0" >>${interfaces}
+    echo "iface br0 inet static" >>${interfaces}
+    echo "    address $ethdevip" >>${interfaces}
+    echo "    netmask $netmask" >>${interfaces}
+    echo "    gateway $gateway" >>${interfaces}
+    echo "" >>${interfaces}
+    echo "auto $ethdev" >>${interfaces}
+    echo "iface $ethdev inet static" >>${interfaces}
+    echo "    address 0.0.0.0" >>${interfaces}
+    echo "" >>${interfaces}
+}
+
+
+start_n_stop(){
+    start_script=start-openvswitch
+    stop_script=stop-openvswitch
+    
+    # start script
+    echo "#!/bin/bash" >${start_script}
+    echo "sudo echo Need SU passwd: " >>${start_script}
+    echo "sudo ovs-vsctl add-br $brName 2>/dev/null" >>${start_script}
+    echo "sudo ovs-vsctl add-port $brName $ethdev" >>${start_script}
+    echo "sudo ifconfig $ethdev 0" >>${start_script}
+    echo "sudo ifconfig $brName $ethdevip netmask $netmask" >>${start_script}
+    echo "sudo route add default gw $gateway" >>${start_script}
+    # stop script
+    echo "#!/bin/bash" >${stop_script}
+    echo "sudo echo Need SU passwd: " >>${stop_script}
+    echo "sudo ifconfig $brName 0" >>${stop_script}
+    echo "sudo ovs-vsctl del-port $ethdev" >>${stop_script}
+    echo "sudo ovs-vsctl del-br $brName" >>${stop_script}
+    echo "sudo ifconfig $ethdev $ethdevip netmask $netmask" >>${stop_script}
+    echo "sudo route add default gw $gateway" >>${stop_script}
+    # changing execute permission
+    chmod +x ${start_script} ${stop_script}
+}
+
+
+check_ovs
+get_ethdev_info
+echo "I got some infomation."
+printf "IP:\t$ethdevip\nMASK:\t$netmask\nGW:\t$gateway\n"
+detect_ethdev
+create_interfaces
+echo "`pwd`/${interfaces} created."
+echo "Please edit it & copy to /etc/network/"
+start_n_stop
+echo "Start & stop scripts created."
+
+

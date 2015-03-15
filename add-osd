@@ -1,0 +1,56 @@
+#!/bin/bash
+
+if [ $# != 2 ]
+then echo "$0 start-ceph-?-AsDaemon /dev/sdx"
+	echo "example start-ceph-212-212 /dev/sdb"
+    exit 1
+fi
+
+script_num=0
+script=$1
+dev=$2
+user=`whoami`
+
+grep -q "replaceB" $script
+if [ $? -eq 0 ]
+then script_num=1
+fi
+
+grep -q "replaceC" $script
+if [ $? -eq 0 ]
+then script_num=2
+fi
+
+replace_a(){
+sed -i "s,#replaceA,sudo chown $user:$user $dev,g" $script
+}
+
+replace_b(){
+sed -i "s/\& #replaceB/-drive file=DEV,if=virtio,index=1 \&/g" $script
+sed -i "s,DEV,$dev,g" $script
+}
+
+replace_c(){
+sed -i "s/\& #replaceC/-drive file=DEV,if=virtio,index=1 \&/g" $script
+sed -i "s,DEV,$dev,g" $script
+}
+
+case $script_num in
+    0)
+	echo "Do Nothing"
+	;;
+    1)
+	replace_a
+	replace_b
+	echo "Done!"
+	;;
+    2)
+	replace_a
+	replace_c
+	echo "Done!"
+	;;
+    *)
+	echo "ERROR"
+	;;
+esac
+
