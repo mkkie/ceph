@@ -1,6 +1,0 @@
-#!/bin/bash
-sudo echo Need SU passwd: 
-sudo ifconfig br0 0
-sudo ovs-vsctl del-port eth1
-sudo ifconfig eth1 192.168.0.15   netmask 255.255.255.0
-sudo route add default gw 
