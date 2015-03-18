@@ -299,6 +299,8 @@ new_conf() {
     echo "osd pool default pg num = 128" >>$ceph_conf
     echo "mon initial members = $hostname" >>$ceph_conf
     echo "mon host = $hostip" >>$ceph_conf
+    echo "mon data avail warn = 15" >>$ceph_conf
+    echo "mon data avail crit = 10" >>$ceph_conf
     echo "" >>$ceph_conf
     echo "[mon]" >>$ceph_conf
     echo ";mon data = /var/lib/ceph/mon/\$name" >>$ceph_conf
