@@ -130,12 +130,15 @@ create_osd() {
     [ $? -ne 0 ] && echo "Disk error, please check it"
     sudo mkdir -p $osd_dir
     sudo mount $osd_dev $osd_dir
-    #ceph osd create
+    # ceph osd create
     sudo ceph-osd -i $osd_id --mkfs --mkkey
     sudo ceph auth add osd.$osd_id osd 'allow *' \
 	 mon 'allow profile osd' -i $osd_dir/keyring
     sudo touch $osd_dir/sysvinit
     sudo service ceph -a start osd.$osd_id
+    # /etc/fstab
+    sudo cp /etc/fstab /etc/fstab.osd.bkp
+    printf "$osd_dev\t$osd_dir\text4\tdefault\t0\t0\n" | sudo tee -a /etc/fstab
 }
 
 ## check osd number & assign
