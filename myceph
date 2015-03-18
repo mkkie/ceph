@@ -137,7 +137,12 @@ create_osd() {
     sudo touch $osd_dir/sysvinit
     sudo service ceph -a start osd.$osd_id
     # /etc/fstab
-    sudo cp /etc/fstab /etc/fstab.osd.bkp
+    if [ ! -f /etc/fstab.osd.bkp ]
+    then
+	sudo cp /etc/fstab /etc/fstab.osd.bkp
+    else
+	sudo cp /etc/fstab.osd.bkp /etc/fstab
+    fi
     printf "$osd_dev\t$osd_dir\text4\tdefault\t0\t0\n" | sudo tee -a /etc/fstab
 }
 
