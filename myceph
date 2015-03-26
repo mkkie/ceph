@@ -143,7 +143,7 @@ create_osd() {
     else
 	sudo cp /etc/fstab.osd.bkp /etc/fstab
     fi
-    printf "$osd_dev\t$osd_dir\text4\tdefault\t0\t0\n" | sudo tee -a /etc/fstab
+    printf "$osd_dev\t$osd_dir\text4\tdefaults\t0\t0\n" | sudo tee -a /etc/fstab
 }
 
 ## check osd number & assign
