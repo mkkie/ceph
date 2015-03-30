@@ -24,7 +24,7 @@ create_init(){
 	    scp -r $cluster_dir $remote_ip:$cluster_dir
 	    ;;
 	*)
-	    echo "usage"
+	    echo "usage: $filename remote-IP create [ mon | osd | mds | dir ]"
 	    ;;
     esac
 }
@@ -44,7 +44,7 @@ start_function(){
 	    ssh_command "sudo service ceph -a start"
 	    ;;
 	*)
-	    echo "usage"
+	    echo "usage: $filename remote-IP start [ mon | osd | mds | all ]"
 	    ;;
     esac
 }
@@ -64,7 +64,7 @@ stop_function(){
 	    ssh_command "sudo service ceph -a stop"
 	    ;;
 	*)
-	    echo "usage"
+	    echo "usage: $filename remote-IP stop [ mon | osd | mds | all ]"
 	    ;;
     esac
 }
@@ -88,6 +88,6 @@ case "$command" in
 	stop_function $para1 $para2
 	;;
     *)
-	echo "usage"
+	echo "usage: $filename remote-IP [ create | start | stop ]"
 	;;
 esac
