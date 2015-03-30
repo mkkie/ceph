@@ -1,0 +1,93 @@
+#! /bin/bash
+
+cluster_dir="$HOME/my-cluster"
+
+ssh_command(){
+ssh -t $USER@$remote_ip $1
+}
+
+create_init(){
+    case $1 in
+	mon)
+	    ssh_command "cd $cluster_dir;./myceph create mon"
+	    ;;
+	osd)
+	    ssh_command "sudo fdisk -l"
+	    printf "choose one device => "
+	    read osd_dev
+	    ssh_command "cd $cluster_dir;./myceph create osd $osd_dev"
+	    ;;
+	mds)
+	    ssh_command "cd $cluster_dir;./myceph create mds"
+	    ;;
+	dir)
+	    scp -r $cluster_dir $remote_ip:$cluster_dir
+	    ;;
+	*)
+	    echo "usage"
+	    ;;
+    esac
+}
+
+start_function(){
+    case $1 in
+	mon)
+	    ssh_command "sudo service ceph -a start mon"
+	    ;;
+	osd)
+	    ssh_command "sudo service ceph -a start osd"
+	    ;;
+	mds)
+	    ssh_command "sudo service ceph -a start mds"
+	    ;;
+	all)
+	    ssh_command "sudo service ceph -a start"
+	    ;;
+	*)
+	    echo "usage"
+	    ;;
+    esac
+}
+
+stop_function(){
+    case $1 in
+	mon)
+	    ssh_command "sudo service ceph -a stop mon"
+	    ;;
+	osd)
+	    ssh_command "sudo service ceph -a stop osd"
+	    ;;
+	mds)
+	    ssh_command "sudo service ceph -a stop mds"
+	    ;;
+	all)
+	    ssh_command "sudo service ceph -a stop"
+	    ;;
+	*)
+	    echo "usage"
+	    ;;
+    esac
+}
+
+filename=$0
+remote_ip=$1
+command=$2
+para1=$3
+para2=$4
+test -z $3 && para1=0
+test -z $4 && para2=0
+
+case "$command" in
+    create)
+	create_init $para1 $para2
+	;;
+    start)
+	start_function $para1 $para2
+	;;
+    stop)
+	stop_function $para1 $para2
+	;;
+    *)
+	echo "usage"
+	;;
+esac
