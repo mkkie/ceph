@@ -13,19 +13,12 @@ env_create(){
 sleep 1;
 sudo chown $USER:$USER $ceph_dir;
 git clone $git_url $ceph_dir"
-    ssh_command "if [ ! -d $ceph_dir ];then $mkdir_command;echo \"mkdir\";fi;" | tee status
-    stat1=$(tail -n1 status)
-    echo $stat1 > status
+    ssh_command "if [ ! -d $ceph_dir ];then $mkdir_command;echo \"mkdir\";fi;" 
 }
 
 scp_template(){
     echo "scp data to $remote_ip "
-    if [[ `cat status` == *"mkdir"* ]]
-    then
-	scp ceph-kvm-template.img $USER@$remote_ip:$ceph_dir
-    else
-	echo "$ceph_dir exits. Do nothing."
-    fi
+    scp ceph-kvm-template.img $USER@$remote_ip:$ceph_dir
 }
 
 net_setting(){
