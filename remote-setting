@@ -1,0 +1,111 @@
+#!/bin/bash
+
+ceph_dir=/src4/KVM/ceph/
+git_url="https://github.com/mkkie/ceph.git"
+
+ssh_command(){
+ssh -t $USER@$remote_ip $1
+}
+
+env_create(){
+    echo "create $remote_ip:$ceph_dir"
+    mkdir_command="sudo mkdir -p $ceph_dir;
+sleep 1;
+sudo chown $USER:$USER $ceph_dir;
+git clone $git_url $ceph_dir"
+    ssh_command "if [ ! -d $ceph_dir ];then $mkdir_command;echo \"mkdir\";fi;" | tee status
+    stat1=$(tail -n1 status)
+    echo $stat1 > status
+}
+
+scp_template(){
+    echo "scp data to $remote_ip "
+    if [[ `cat status` == *"mkdir"* ]]
+    then
+	scp ceph-kvm-template.img $USER@$remote_ip:$ceph_dir
+    else
+	echo "$ceph_dir exits. Do nothing."
+    fi
+}
+
+net_setting(){
+    echo "setting openvswitch"
+    net_command="cd $ceph_dir;./Change-to-OpenvSwitch"
+    ssh_command "$net_command"
+    }
+
+start_openvswitch(){
+    echo "start openvswitch"
+    switch_open="cd $ceph_dir;./start-openvswitch"
+    ssh_command "$switch_open"
+}
+
+vm_setting(){
+    echo "remote VM setting"
+    printf "VM-IP => "
+    read vm_ip
+    printf "VM-ID number => "
+    read vm_tap
+    IMG=ceph-$vm_tap.img
+    copy_img="if [ ! -f $ceph_dir/$IMG ];then echo \"copying img, please wait....\";cp $ceph_dir/ceph-kvm-template.img $ceph_dir/$IMG;fi"
+    ssh_command "$copy_img;cd $ceph_dir;./Config-Ceph-KVM $IMG $vm_ip $vm_tap"
+    }
+
+vm_start(){
+    echo "remote vm start"
+    printf "VM-ID number => "
+    read vm_tap
+    ssh_command "cd $ceph_dir;./start-ceph-$vm_tap-$vm_tap-AsDaemon;echo \"Please wait 10 seconds.\";sleep 10"
+}
+
+vm_stop(){
+    echo "remote vm stop"
+    printf "VM-ID number => "
+    read vm_tap
+    ssh_command "cd $ceph_dir;./stop-ceph-restore-lan-$vm_tap"
+    }
+
+add_osd(){
+    echo "Add OSD"
+    printf "VM-ID number => "
+    read vm_tap
+    ssh_command "sudo fdisk -l"
+    printf "choose one device => "
+    read osd_dev
+    ssh_command "cd $ceph_dir;./add-osd ./start-ceph-$vm_tap-$vm_tap-AsDaemon $osd_dev"
+}
+
+remote_ip=$1
+para1=$2
+ceph_dir=/src4/KVM/ceph/
+git_url="https://github.com/mkkie/ceph.git"
+
+case $para1 in
+    create)
+	env_create
+	;;
+    scp-template)
+	scp_template
+	;;
+    net-setting)
+	net_setting
+	;;
+    net-start)
+	start_openvswitch
+	;;
+    vm-setting)
+	vm_setting
+	;;
+    vm-start)
+	vm_start
+	;;
+    vm-stop)
+	vm_stop
+	;;
+    add-osd)
+	add_osd
+	;;
+    *)
+	echo "usage:"
+	;;
+esac
