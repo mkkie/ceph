@@ -25,12 +25,18 @@ net_setting(){
     echo "setting openvswitch"
     net_command="cd $ceph_dir;./Change-to-OpenvSwitch"
     ssh_command "$net_command"
-    }
+}
 
 start_openvswitch(){
     echo "start openvswitch"
     switch_open="cd $ceph_dir;./start-openvswitch"
     ssh_command "$switch_open"
+}
+
+stop_openvswitch(){
+    echo "stop openvswitch"
+    switch_close="cd $ceph_dir;./stop-openvswitch"
+    ssh_command "$switch_close"
 }
 
 vm_setting(){
@@ -42,7 +48,7 @@ vm_setting(){
     IMG=ceph-$vm_tap.img
     copy_img="if [ ! -f $ceph_dir/$IMG ];then echo \"copying img, please wait....\";cp $ceph_dir/ceph-kvm-template.img $ceph_dir/$IMG;fi"
     ssh_command "$copy_img;cd $ceph_dir;./Config-Ceph-KVM $IMG $vm_ip $vm_tap"
-    }
+}
 
 vm_start(){
     echo "remote vm start"
@@ -68,37 +74,56 @@ add_osd(){
     ssh_command "cd $ceph_dir;./add-osd ./start-ceph-$vm_tap-$vm_tap-AsDaemon $osd_dev"
 }
 
+filename=$0
 remote_ip=$1
 para1=$2
+para2=$3
 ceph_dir=/src4/KVM/ceph/
 git_url="https://github.com/mkkie/ceph.git"
 
 case $para1 in
-    create)
+    initial)
 	env_create
 	;;
     scp-template)
 	scp_template
 	;;
-    net-setting)
-	net_setting
+    net)
+	case $para2 in
+	    setting)
+		net_setting
+		;;
+	    start)
+		start_openvswitch
+		;;
+	    stop)
+		stop_openvswitch
+		;;
+	    *)
+		echo "usage: $filename net [ setting | start | stop ]"
+		;;
+	esac
 	;;
-    net-start)
-	start_openvswitch
-	;;
-    vm-setting)
-	vm_setting
-	;;
-    vm-start)
-	vm_start
-	;;
-    vm-stop)
-	vm_stop
-	;;
-    add-osd)
-	add_osd
+    vm)
+	case $para2 in
+	    setting)
+		vm_setting
+		;;
+	    start)
+		vm_start
+		;;
+	    stop)
+		vm_stop
+		;;
+	    add-osd)
+		add_osd
+		;;
+	    *)
+		echo "usage: $filename vm [ setting | start | stop | add-osd ]"
+		;;
+	esac
 	;;
     *)
-	echo "usage:"
+	echo "usage: $filename [ initial | vm | net | scp-template ] "
 	;;
 esac
