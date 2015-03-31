@@ -1,0 +1,21 @@
+#! /bin/bash
+
+
+
+cluster_ip=$1
+command=$2
+
+case $command in
+    cephfs)
+	echo "cephfs"
+	;;
+    rbd)
+	echo "rbd"
+	;;
+    key)
+	echo "key"
+	;;
+    *)
+	echo "usage: "
+	;;
+esac

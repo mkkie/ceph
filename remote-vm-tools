@@ -39,8 +39,8 @@ stop_openvswitch(){
     ssh_command "$switch_close"
 }
 
-vm_setting(){
-    echo "remote VM setting"
+vm_init(){
+    echo "remote VM initial"
     printf "VM-IP => "
     read vm_ip
     printf "VM-ID number => "
@@ -106,8 +106,8 @@ case $para1 in
 	;;
     vm)
 	case $para2 in
-	    setting)
-		vm_setting
+	    init)
+		vm_init
 		;;
 	    start)
 		vm_start
@@ -119,7 +119,7 @@ case $para1 in
 		add_osd
 		;;
 	    *)
-		echo "usage: $filename vm [ setting | start | stop | add-osd ]"
+		echo "usage: $filename vm [ init | start | stop | add-osd ]"
 		;;
 	esac
 	;;

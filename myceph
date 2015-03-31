@@ -377,6 +377,50 @@ new_admin_key() {
     chmod +r $admin_key
 }
 
+## start & stop ceph cluster
+start_stop(){
+    case $command in
+	start)
+	    case $para1 in
+		mon)
+		    sudo service ceph -a start mon
+		    ;;
+		osd)
+		    sudo service ceph -a start osd
+		    ;;
+		mds)
+		    sudo service ceph -a start mds
+		    ;;
+		all)
+		    sudo service ceph -a start
+		    ;;
+		*)
+		    echo "usage: $filename start [ mon | osd | mds | all ]"
+		    ;;
+	    esac
+	    ;;
+	stop)
+	    case $para1 in
+		mon)
+		    sudo service ceph -a stop mon
+		    ;;
+		osd)
+		    sudo service ceph -a stop osd
+		    ;;
+		mds)
+		    sudo service ceph -a stop mds
+		    ;;
+		all)
+		    sudo service ceph -a stop
+		    ;;
+		*)
+		    echo "usage: $filename stop [ mon | osd | mds | all ]"
+		    ;;
+	    esac
+	    ;;
+    esac
+}
+
 ## for testing some function
 t_e_s_t() {
     haha="EEEEE"
@@ -430,11 +474,8 @@ case "$command" in
     edit)
 	edit_init $para1 $para2 $para3
 	;;
-    start)
-	sudo service ceph -a start
-	;;
-    stop)
-	sudo service ceph -a stop
+    start | stop)
+	start_stop
 	;;
     new)
 	new_cluster
