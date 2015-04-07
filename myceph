@@ -46,11 +46,14 @@ create_init() {
 	    create_chk_conf
 	    create_mds
 	    ;;
+	key)
+	    create_keyring
+	    ;;
 	cluster)
 	    echo "Create cluster by $ceph_conf, not yet"
 	    ;;
 	*)
-	    echo "usage: $filename create [osd|mon|mds|cluster]... "
+	    echo "usage: $filename create [osd|mon|mds|key|cluster]... "
 	    exit
 	    ;;
     esac
@@ -90,6 +93,11 @@ create_chk_conf() {
 	conf_chk=1
     fi
     [ $conf_chk -eq 1 ] && echo "exit" && exit
+}
+
+## create cluster keyring
+create_keyring() {
+    echo "create keyring"
 }
 
 ## create monmap & monitor

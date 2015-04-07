@@ -2,13 +2,14 @@
 
 ifconf=/sbin/ifconfig
 route=/sbin/route
-brName=br0
+brName=$4
 HostName="ceph-$3"
 TAP="tap$3"
 
+
 # For Permission check
-if [ $# != 3 ]
-  then echo "$0 Image VM-IP TAP-# "
+if [ $# != 4 ]
+  then echo "$0 Image VM-IP VM-# br-name"
   exit 1
 elif [ ! -d /mnt/tmp ] 
  then echo "Mount point /mnt/tmp does not exist, create it first."
@@ -34,7 +35,9 @@ client_net_info(){
     GateWay="$i1.$i2.$i3.1"
 }
 
+
 client_net_info $2
+
 
 # Show Information
 echo "HostName: $HostName"
@@ -76,8 +79,6 @@ echo "" >70-persistent-net.rules
 echo "#For more information, please check /etc/rc.local" >interfaces
 echo "auto lo" >>interfaces
 echo "iface lo inet loopback" >>interfaces
-echo "nameserver 140.120.7.1" >resolv.conf
-echo "nameserver 140.120.1.2" >>resolv.conf
 echo "nameserver 8.8.8.8" >>resolv.conf
 echo "#!/bin/sh -e" >rc.local
 echo "" >>rc.local
@@ -121,7 +122,7 @@ echo "" >>${KvmScript}
 echo "sudo chmod 666 /dev/net/tun" >>${KvmScript}
 echo "sudo tunctl -u `whoami` -t ${TAP}" >>${KvmScript}
 echo "sudo ifconfig ${TAP} 0.0.0.0 up" >>${KvmScript}
-echo "sudo ./ovs-ifup ${TAP}" >>${KvmScript}
+echo "sudo ./ovs-ifup $brName ${TAP}" >>${KvmScript}
 echo "sudo modprobe vhost_net" >>${KvmScript}
 echo "sudo chmod 666 /dev/vhost-net" >>${KvmScript}
 echo "#replaceA" >>${KvmScript}
@@ -175,7 +176,7 @@ echo "else rm -f ${SockDir}/MonSock-$HostName" >>${StopAndRestoreLan}
 echo "fi" >>${StopAndRestoreLan}
 echo "" >>${StopAndRestoreLan}
 echo "echo \"Restore lan...\"" >>${StopAndRestoreLan}
-echo "sudo ./ovs-ifdown ${TAP}" >>${StopAndRestoreLan}
+echo "sudo ./ovs-ifdown $brName ${TAP}" >>${StopAndRestoreLan}
 echo "sudo tunctl -d ${TAP}" >>${StopAndRestoreLan}
 echo "" >>${StopAndRestoreLan}
 
@@ -189,16 +190,16 @@ if [ ! -f ovs-ifup ]
 then
     echo '#!/bin/sh' >ovs-ifup
     echo "" >>ovs-ifup
-    echo "switch=$brName" >>ovs-ifup
-    echo "/sbin/ifconfig \$1 0.0.0.0 up" >>ovs-ifup
-    echo "ovs-vsctl add-port \${switch} \$1" >>ovs-ifup
+    echo "switch=\$1" >>ovs-ifup
+    echo "/sbin/ifconfig \$2 0.0.0.0 up" >>ovs-ifup
+    echo "ovs-vsctl add-port \${switch} \$2" >>ovs-ifup
 fi
 if [ ! -f ovs-ifdown ]
 then
     echo '#!/bin/sh' >ovs-ifdown
     echo "" >>ovs-ifdown
-    echo "switch=$brName" >>ovs-ifdown
-    echo "/sbin/ifconfig \$1 0.0.0.0 down" >>ovs-ifdown
-    echo "ovs-vsctl del-port \${switch} \$1" >>ovs-ifdown
+    echo "switch=\$1" >>ovs-ifdown
+    echo "/sbin/ifconfig \$2 0.0.0.0 down" >>ovs-ifdown
+    echo "ovs-vsctl del-port \${switch} \$2" >>ovs-ifdown
 fi
 sudo chmod 755 ovs-ifup ovs-ifdown
