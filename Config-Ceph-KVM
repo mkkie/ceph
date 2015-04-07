@@ -5,11 +5,12 @@ route=/sbin/route
 brName=$4
 HostName="ceph-$3"
 TAP="tap$3"
-
+br2=$5
 
 # For Permission check
-if [ $# != 4 ]
-  then echo "$0 Image VM-IP VM-# br-name"
+if [ $# != 4 -a $# != 5 ]
+then echo "$0 Image VM-IP VM-# br-name"
+     echo "$0 Image VM-IP VM-# br-name 2nd-br"
   exit 1
 elif [ ! -d /mnt/tmp ] 
  then echo "Mount point /mnt/tmp does not exist, create it first."
@@ -30,7 +31,9 @@ client_net_info(){
     F4=`od -An -N1 -x /dev/random | sed 's/^\ 00//'`
     F5=`od -An -N1 -x /dev/random | sed 's/^\ 00//'`
     F6=`od -An -N1 -x /dev/random | sed 's/^\ 00//'`
+    F7=`od -An -N1 -x /dev/random | sed 's/^\ 00//'`
     FakeMac=$PREFIX:${F4}:${F5}:${F6}
+    FakeMac2=$PREFIX:${F4}:${F5}:${F7}
     IFS=. read i1 i2 i3 i4 <<< "$1"
     GateWay="$i1.$i2.$i3.1"
 }
@@ -123,6 +126,10 @@ echo "sudo chmod 666 /dev/net/tun" >>${KvmScript}
 echo "sudo tunctl -u `whoami` -t ${TAP}" >>${KvmScript}
 echo "sudo ifconfig ${TAP} 0.0.0.0 up" >>${KvmScript}
 echo "sudo ./ovs-ifup $brName ${TAP}" >>${KvmScript}
+if [ ! -z $br2 ]
+then echo "sudo ifconfig i${TAP} 0.0.0.0 up" >>${KvmScript}
+     echo "sudo ./ovs-ifup $br2 i${TAP}" >>${KvmScript}
+fi
 echo "sudo modprobe vhost_net" >>${KvmScript}
 echo "sudo chmod 666 /dev/vhost-net" >>${KvmScript}
 echo "#replaceA" >>${KvmScript}
@@ -135,6 +142,10 @@ echo "-smp 1 \\" >>${KvmScript}
 echo "-m 1024M \\" >>${KvmScript}
 echo "-netdev tap,id=${TAP},ifname=${TAP},vhost=on,script=no \\" >>${KvmScript}
 echo "-net nic,model=virtio,netdev=${TAP},vlan=0,macaddr=${FakeMac} \\" >>${KvmScript}
+if [ ! -z $br2 ]
+then echo "-netdev tap,id=i${TAP},ifname=i${TAP},vhost=on,script=no \\" >>${KvmScript}
+     echo "-net nic,model=virtio,netdev=i${TAP},vlan=0,macaddr=${FakeMac2} \\" >>${KvmScript}
+fi
 echo "-monitor unix:${SockDir}/MonSock-$HostName,server,nowait \\" >>${KvmScript}
 echo "-drive file=$1,if=virtio,index=0 \\" >>${KvmScript}
 echo "& #replaceB" >>${KvmScript}
@@ -144,6 +155,10 @@ echo "-smp 1 \\" >>${KvmScript}-AsDaemon
 echo "-m 1024M \\" >>${KvmScript}-AsDaemon
 echo "-netdev tap,id=${TAP},ifname=${TAP},vhost=on,script=no \\" >>${KvmScript}-AsDaemon
 echo "-net nic,model=virtio,netdev=${TAP},vlan=0,macaddr=${FakeMac} \\" >>${KvmScript}-AsDaemon
+if [ ! -z $br2 ]
+then echo "-netdev tap,id=i${TAP},ifname=i${TAP},vhost=on,script=no \\" >>${KvmScript}-AsDaemon
+	echo "-net nic,model=virtio,netdev=i${TAP},vlan=0,macaddr=${FakeMac2} \\" >>${KvmScript}-AsDaemon
+fi
 echo "-monitor unix:${SockDir}/MonSock-$HostName,server,nowait \\" >>${KvmScript}-AsDaemon
 echo "-curses \\" >>${KvmScript}-AsDaemon
 echo "-drive file=$1,if=virtio,index=0 \\" >>${KvmScript}-AsDaemon
@@ -178,6 +193,10 @@ echo "" >>${StopAndRestoreLan}
 echo "echo \"Restore lan...\"" >>${StopAndRestoreLan}
 echo "sudo ./ovs-ifdown $brName ${TAP}" >>${StopAndRestoreLan}
 echo "sudo tunctl -d ${TAP}" >>${StopAndRestoreLan}
+if [ ! -z $br2 ]
+then echo "sudo ./ovs-ifdown $br2 i${TAP}" >>${StopAndRestoreLan}
+     echo "sudo tunctl -d i${TAP}" >>${StopAndRestoreLan}
+fi
 echo "" >>${StopAndRestoreLan}
 
 
