@@ -100,7 +100,7 @@ case $para1 in
 		stop_openvswitch
 		;;
 	    *)
-		echo "usage: $filename net [ setting | start | stop ]"
+		echo "usage: $filename remote-IP net [ setting | start | stop ]"
 		;;
 	esac
 	;;
@@ -119,11 +119,11 @@ case $para1 in
 		add_osd
 		;;
 	    *)
-		echo "usage: $filename vm [ init | start | stop | add-osd ]"
+		echo "usage: $filename remote-IP vm [ init | start | stop | add-osd ]"
 		;;
 	esac
 	;;
     *)
-	echo "usage: $filename [ initial | vm | net | scp-template ] "
+	echo "usage: $filename remote-IP [ initial | vm | net | scp-template ] "
 	;;
 esac
