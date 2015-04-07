@@ -127,7 +127,8 @@ echo "sudo tunctl -u `whoami` -t ${TAP}" >>${KvmScript}
 echo "sudo ifconfig ${TAP} 0.0.0.0 up" >>${KvmScript}
 echo "sudo ./ovs-ifup $brName ${TAP}" >>${KvmScript}
 if [ ! -z $br2 ]
-then echo "sudo ifconfig i${TAP} 0.0.0.0 up" >>${KvmScript}
+then echo "sudo tunctl -u `whoami` -t i${TAP}" >>${KvmScript}
+     echo "sudo ifconfig i${TAP} 0.0.0.0 up" >>${KvmScript}
      echo "sudo ./ovs-ifup $br2 i${TAP}" >>${KvmScript}
 fi
 echo "sudo modprobe vhost_net" >>${KvmScript}

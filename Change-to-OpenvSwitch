@@ -84,8 +84,8 @@ create_interfaces(){
 
 
 start_n_stop(){
-    start_script=start-openvswitch
-    stop_script=stop-openvswitch
+    start_script=start-openvswitch-$brName
+    stop_script=stop-openvswitch-$brName
     # start script
     echo "#!/bin/bash" >${start_script}
     echo "sudo echo Need SU passwd: " >>${start_script}
