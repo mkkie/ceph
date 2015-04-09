@@ -45,16 +45,18 @@ vm_init(){
     read vm_ip
     printf "VM-ID number => "
     read vm_tap
+    printf "bridge => "
+    read ovs_br
     IMG=ceph-$vm_tap.img
     copy_img="if [ ! -f $ceph_dir/$IMG ];then echo \"copying img, please wait....\";cp $ceph_dir/ceph-kvm-template.img $ceph_dir/$IMG;fi"
-    ssh_command "$copy_img;cd $ceph_dir;./Config-Ceph-KVM $IMG $vm_ip $vm_tap"
+    ssh_command "$copy_img;cd $ceph_dir;./Config-Ceph-KVM $IMG $vm_ip $vm_tap $ovs_br"
 }
 
 vm_start(){
     echo "remote vm start"
     printf "VM-ID number => "
     read vm_tap
-    ssh_command "cd $ceph_dir;./start-ceph-$vm_tap-$vm_tap-AsDaemon;echo \"Please wait 10 seconds.\";sleep 10"
+    ssh_command "cd $ceph_dir;./start-ceph-$vm_tap-AsDaemon;echo \"Please wait 10 seconds.\";sleep 10"
 }
 
 vm_stop(){
@@ -71,7 +73,7 @@ add_osd(){
     ssh_command "sudo fdisk -l"
     printf "choose one device => "
     read osd_dev
-    ssh_command "cd $ceph_dir;./add-osd ./start-ceph-$vm_tap-$vm_tap-AsDaemon $osd_dev"
+    ssh_command "cd $ceph_dir;./add-osd ./start-ceph-$vm_tap-AsDaemon $osd_dev"
 }
 
 filename=$0

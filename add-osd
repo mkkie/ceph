@@ -2,7 +2,7 @@
 
 if [ $# != 2 ]
 then echo "$0 start-ceph-?-AsDaemon /dev/sdx"
-	echo "example start-ceph-212-212 /dev/sdb"
+	echo "example start-ceph-osd212-AsDaemon /dev/sdb"
     exit 1
 fi
 
