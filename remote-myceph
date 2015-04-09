@@ -1,6 +1,7 @@
 #! /bin/bash
 
 cluster_dir="$HOME/my-cluster"
+ceph_ser_dir="/var/lib/ceph"
 
 ssh_command(){
 ssh -t $USER@$remote_ip $1
@@ -27,6 +28,26 @@ create_init(){
 	    echo "usage: $filename remote-IP create [ mon | osd | mds | dir ]"
 	    ;;
     esac
+}
+
+delete_ceph(){
+    echo "Stop ceph service & delete it."
+    printf "Continue (yes/no)? "
+    read yn
+    case $yn in
+	[Yy] | yes)
+	    del=1
+	    ;;
+	[Nn] | no)
+	    del=0
+	    ;;
+	*)
+	    printf "Please type 'yes' or 'no': "
+	    ;;
+    esac
+    if [ $del -eq 1 ]
+    then ssh_command "sudo service ceph -a stop;sudo umount /dev/vdb;sudo rm -r /etc/ceph $cluster_dir $ceph_ser_dir;sudo cp /etc/fstab.osd.bkp /etc/fstab"
+    fi
 }
 
 start_function(){
@@ -69,6 +90,10 @@ stop_function(){
     esac
 }
 
+power_off(){
+    ssh_command "sudo service ceph -a stop;sync;sudo init 0"
+}
+
 filename=$0
 remote_ip=$1
 command=$2
@@ -81,13 +106,19 @@ case "$command" in
     create)
 	create_init $para1 $para2
 	;;
+    delete)
+	delete_ceph $para1 $para2
+	;;
     start)
 	start_function $para1 $para2
 	;;
     stop)
 	stop_function $para1 $para2
 	;;
+    poweroff)
+	power_off
+	;;
     *)
-	echo "usage: $filename remote-IP [ create | start | stop ]"
+	echo "usage: $filename remote-IP [ create | delete | start | stop | poweroff ]"
 	;;
 esac
