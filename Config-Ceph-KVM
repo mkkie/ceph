@@ -206,20 +206,15 @@ chmod 755 ${KvmScript} ${KvmScript}-AsDaemon ${StopAndRestoreLan}
 
 
 # Creating OpenvSwitch up & down scripts(single quotes)
-if [ ! -f ovs-ifup ]
-then
-    echo '#!/bin/sh' >ovs-ifup
-    echo "" >>ovs-ifup
-    echo "switch=\$1" >>ovs-ifup
-    echo "/sbin/ifconfig \$2 0.0.0.0 up" >>ovs-ifup
-    echo "ovs-vsctl add-port \${switch} \$2" >>ovs-ifup
-fi
-if [ ! -f ovs-ifdown ]
-then
-    echo '#!/bin/sh' >ovs-ifdown
-    echo "" >>ovs-ifdown
-    echo "switch=\$1" >>ovs-ifdown
-    echo "/sbin/ifconfig \$2 0.0.0.0 down" >>ovs-ifdown
-    echo "ovs-vsctl del-port \${switch} \$2" >>ovs-ifdown
-fi
+
+echo '#!/bin/sh' >ovs-ifup
+echo "" >>ovs-ifup
+echo "switch=\$1" >>ovs-ifup
+echo "/sbin/ifconfig \$2 0.0.0.0 up" >>ovs-ifup
+echo "ovs-vsctl add-port \${switch} \$2" >>ovs-ifup
+echo '#!/bin/sh' >ovs-ifdown
+echo "" >>ovs-ifdown
+echo "switch=\$1" >>ovs-ifdown
+echo "/sbin/ifconfig \$2 0.0.0.0 down" >>ovs-ifdown
+echo "ovs-vsctl del-port \${switch} \$2" >>ovs-ifdown
 sudo chmod 755 ovs-ifup ovs-ifdown
