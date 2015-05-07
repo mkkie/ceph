@@ -1,11 +1,23 @@
 #!/bin/bash
 
-brName=br0
-
 if [ $# -ne 2 ]
 then  echo "$0 image iso"
       exit 1
 fi
+
+chk_read(){
+    read tmp
+    if [ -z $tmp ]
+    then echo $1
+    else
+	echo $tmp
+    fi
+}
+
+brName=br0
+echo "Open vSwitch Bridge Name: (default: $brName)"
+printf "=> "
+brName=$(chk_read $BrName)
 
 sudo chmod 666 /dev/net/tun
 sudo tunctl -u hsu -t taptmp

@@ -312,7 +312,7 @@ new_conf() {
     echo "fsid = $fsid" >>$ceph_conf
     echo "filestore xattr use omap = true" >>$ceph_conf
     echo "osd pool default size = 3" >>$ceph_conf
-    echo "osd pool default pg num = 128" >>$ceph_conf
+    echo "osd pool default pg num = 64" >>$ceph_conf
     echo "mon initial members = $hostname" >>$ceph_conf
     echo "mon host = $hostip" >>$ceph_conf
     echo "mon data avail warn = 15" >>$ceph_conf
@@ -320,7 +320,7 @@ new_conf() {
     echo "" >>$ceph_conf
     echo "[mon]" >>$ceph_conf
     echo ";mon data = /var/lib/ceph/mon/\$name" >>$ceph_conf
-    echo ";mon clock drift allowed = .050" >>$ceph_conf
+    echo "mon clock drift allowed = .050" >>$ceph_conf
     echo ";debug ms = 1" >>$ceph_conf
     echo ";debug mon = 20" >>$ceph_conf
     echo ";debug paxos = 20" >>$ceph_conf
