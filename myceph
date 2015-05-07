@@ -270,7 +270,19 @@ edit_monmap() {
 	done
     fi
     [ $monmap_chk -ne 0 ] && echo "monmap error or file not found." && exit
-    if [ $monmap_option = add ]
+    if [ $monmap_option = new ]
+    then
+	echo "Setting new monmap."
+	printf "Type how many initial monitors? => "
+	read mon_num
+	for ((num_i=1;num_i <= $mon_num;num_i++))
+	do
+	    printf "Type No.$num_i monitor hostname & ip (saperated by space): "
+	    read mon_host mon_ip
+	    monmaptool --add $mon_host $mon_ip $mon_map >/dev/null
+	done
+	monmaptool --print $mon_map
+    elif [ $monmap_option = add ]
     then
 	echo "Adding monitor from monmap."
 	printf "Type monitor hostname & ip (saperated by space): "
@@ -284,11 +296,11 @@ edit_monmap() {
 	read mon_host
 	monmaptool --rm $mon_host $mon_map >/dev/null
 	monmaptool --print $mon_map
-    elif [ $monmap_option = show ]
+    elif [ $monmap_option = list ]
     then
 	monmaptool --print $mon_map
     else
-	echo "usage: $filename edit monmap [add|rm|show] "
+	echo "usage: $filename edit monmap [add|rm|list] "
     fi
 }
 
