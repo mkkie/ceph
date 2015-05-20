@@ -54,6 +54,8 @@ vm_init(){
 
 vm_start(){
     echo "remote vm start"
+    ls_monsock="cd $ceph_dir ; ls | grep Mon"
+    ssh_command "$ls_monsock"
     printf "VM-ID number => "
     read vm_tap
     ssh_command "cd $ceph_dir;./start-ceph-$vm_tap-AsDaemon;echo \"Please wait 10 seconds.\";sleep 10"
@@ -61,6 +63,8 @@ vm_start(){
 
 vm_stop(){
     echo "remote vm stop"
+    ls_monsock="cd $ceph_dir ; ls | grep Mon"
+    ssh_command "$ls_monsock"
     printf "VM-ID number => "
     read vm_tap
     ssh_command "cd $ceph_dir;./stop-ceph-restore-lan-$vm_tap"
