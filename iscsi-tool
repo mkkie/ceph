@@ -1,0 +1,61 @@
+#! /bin/bash
+
+por_ip=192.168.0.100
+
+chk_read(){
+    read tmp
+    if [ -z $tmp ]
+    then echo $1
+    else
+	echo $tmp
+    fi
+}
+
+chk_ip(){
+    echo "Target IP: (default: $por_ip)"
+    printf "=> "
+    por_ip=$(chk_read $por_ip)
+}
+
+discovery(){
+    sudo iscsiadm --mode discovery --portal $por_ip --type sendtargets
+}
+
+link(){
+    sudo iscsiadm --mode node --targetname $para1 --portal $por_ip --login
+}
+
+unlink(){
+    sudo iscsiadm --mode node --targetname $para1 --portal $por_ip --logout
+}
+
+check_iscsi(){
+    which iscsiadm >/dev/null
+    if [ $? -eq 1 ]
+    then
+	echo "Need to install open-iscsi"
+	sudo aptitude update
+	sudo aptitude install open-iscsi
+fi
+}
+
+para1=$2
+
+case $1 in
+    discovery)
+	check_iscsi
+	chk_ip
+	discovery
+	;;
+    link)
+	chk_ip
+	link
+	;;
+    unlink)
+	chk_ip
+	unlink
+	;;
+    *)
+	echo "$0 [ discovery | link | unlink ]"
+	;;
+esac
