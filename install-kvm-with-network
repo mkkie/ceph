@@ -20,7 +20,7 @@ printf "=> "
 brName=$(chk_read $BrName)
 
 sudo chmod 666 /dev/net/tun
-sudo tunctl -u hsu -t taptmp
+sudo tunctl -u `whoami` -t taptmp
 sudo ifconfig taptmp 0.0.0.0 up
 sudo ovs-vsctl add-port $brName taptmp
 sudo modprobe vhost_net
@@ -33,6 +33,6 @@ kvm \
 -m 1024M \
 -netdev tap,id=taptmp,ifname=taptmp,vhost=on,script=no \
 -net nic,model=virtio,netdev=taptmp,vlan=0,macaddr=60:50:40:5e:6a:40 \
--monitor unix:/tmp/MonSock-tmp,server,nowait \
+-monitor unix:/tmp/MonSock-tmp-$$,server,nowait \
 -drive file=$1,if=virtio \
 --cdrom $2 &
