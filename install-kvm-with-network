@@ -18,11 +18,12 @@ brName=br0
 echo "Open vSwitch Bridge Name: (default: $brName)"
 printf "=> "
 brName=$(chk_read $BrName)
+TAP=taptmp$$
 
 sudo chmod 666 /dev/net/tun
-sudo tunctl -u `whoami` -t taptmp
-sudo ifconfig taptmp 0.0.0.0 up
-sudo ovs-vsctl add-port $brName taptmp
+sudo tunctl -u `whoami` -t $TAP
+sudo ifconfig $TAP 0.0.0.0 up
+sudo ovs-vsctl add-port $brName $TAP
 sudo modprobe vhost_net
 sudo chmod 666 /dev/vhost-net
 
@@ -31,8 +32,8 @@ echo "Installing KVM..., mem=1024M"
 kvm \
 -smp 1 \
 -m 1024M \
--netdev tap,id=taptmp,ifname=taptmp,vhost=on,script=no \
--net nic,model=virtio,netdev=taptmp,vlan=0,macaddr=60:50:40:5e:6a:40 \
+-netdev tap,id=$TAP,ifname=$TAP,vhost=on,script=no \
+-net nic,model=virtio,netdev=$TAP,vlan=0,macaddr=60:50:40:5e:6a:40 \
 -monitor unix:/tmp/MonSock-tmp-$$,server,nowait \
 -drive file=$1,if=virtio \
 --cdrom $2 &
