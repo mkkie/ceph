@@ -33,7 +33,7 @@ kvm \
 -smp 1 \
 -m 1024M \
 -netdev tap,id=$TAP,ifname=$TAP,vhost=on,script=no \
--net nic,model=virtio,netdev=$TAP,vlan=0,macaddr=60:50:40:5e:6a:40 \
+-net nic,model=virtio,netdev=$TAP,vlan=0 \
 -monitor unix:/tmp/MonSock-tmp-$$,server,nowait \
 -drive file=$1,if=virtio \
 --cdrom $2 &
