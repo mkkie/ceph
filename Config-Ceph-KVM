@@ -53,7 +53,7 @@ echo SockDir=${SockDir}
 
 
 # For Image Mounting
-Secstart=976896
+Secstart=999424
 Offset=`expr ${Secstart} '*' 512`
 Mount=NOTREADY
 sudo modprobe loop
