@@ -13,7 +13,7 @@
 
 . /lib/lsb/init-functions
 PATH=/usr/local/bin:/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/sbin
-PATHPROG=/usr/local/bin/ganesha.nfsd
+PATHPROG=/usr/bin/ganesha.nfsd
 LOGFILE=/var/log/nfs-ganesha.log
 CONFFILE=/etc/ganesha/ganesha.conf
 
