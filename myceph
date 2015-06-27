@@ -441,6 +441,11 @@ start_stop(){
     esac
 }
 
+## ldconfig dynamic linker
+dyn_linker() {
+    sudo ldconfig
+}
+
 ## for testing some function
 t_e_s_t() {
     haha="EEEEE"
@@ -489,6 +494,7 @@ case "$command" in
 	ceph -s
 	;;
     create)
+	dyn_linker
 	create_init $para1 $para2 $para3
 	;;
     edit)
