@@ -277,7 +277,7 @@ edit_monmap() {
 	read mon_num
 	for ((num_i=1;num_i <= $mon_num;num_i++))
 	do
-	    printf "Type No.$num_i monitor hostname & ip (saperated by space): "
+	    printf "Type No.$num_i monitor hostname & ip (separated by space): "
 	    read mon_host mon_ip
 	    monmaptool --add $mon_host $mon_ip $mon_map >/dev/null
 	done
