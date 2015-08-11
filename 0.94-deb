@@ -45,5 +45,5 @@ sudo aptitude install $aptlist
 
 for i in $deblist
 do
-echo $i
+sudo dpkg -i $i
 done
