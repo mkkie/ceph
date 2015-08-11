@@ -1,7 +1,25 @@
 #!/bin/bash
 
-sudo aptitude update
-sudo aptitude install libboost-system1.55-dev libboost-thread1.55-dev binutils ryptsetup-bin gdisk parted sdparm uuid-runtime xfsprogs python-flask libaio1 libgoogle-perftools4 libleveldb1 liblttng-ust0 libnspr4 libnss3 libsnappy1 python-requests libfcgi0ldbl cryptsetup
+aptlist="libboost-system1.55-dev
+libboost-thread1.55-dev 
+binutils
+cryptsetup-bin
+gdisk
+parted
+sdparm
+uuid-runtime
+xfsprogs
+python-flask
+libaio1
+libgoogle-perftools4
+libleveldb1
+liblttng-ust0
+libnspr4
+libnss3
+libsnappy1
+python-requests
+libfcgi0ldbl
+cryptsetup"
 
 
 deblist="librados2_0.94-1_amd64.deb
@@ -21,6 +39,9 @@ ceph-fuse_0.94-1_amd64.deb
 ceph-mds_0.94-1_amd64.deb
 radosgw_0.94-1_amd64.deb"
 
+
+sudo aptitude update
+sudo aptitude install $aptlist
 
 for i in $deblist
 do
