@@ -1,10 +1,10 @@
-#! /usr/bin/python
+#! /usr/bin/env python
 
 import sys
 import boto
 import boto.s3.connection
-access_key = '3PP2TZ1UC'
-secret_key = 'JKQQG48OM8D'
+access_key = 'TVJ75XYZODLSWC66VNHX'
+secret_key = 'rMjbDJj12FP7jshF9QMGyQHJDbcQlz8ps7Flffmp'
 
 conn = boto.connect_s3(
         aws_access_key_id = access_key,
@@ -90,22 +90,26 @@ def remove():
                 print sys.argv[0],sys.argv[1],"Bucket_Name ObjectName"
 
 def acl():
-        print "Change an object's ACL"
-        if len(sys.argv) == 5:
-                bucket = conn.get_bucket(sys.argv[2])
-                acl_select = sys.argv[3]
-                object = sys.argv[4]
-                hello_key = bucket.get_key(object)
-                if acl_select == 'pub':
-                        print object,"change to public-read"
-                        hello_key.set_canned_acl('public-read')
-                elif acl_select == 'pri':
-                        print object,"change to private"
-                        hello_key.set_canned_acl('private')
-                else:
-                        print "ACL no change"
-        else:
-                print sys.argv[0],sys.argv[1],"Bucket_Name [pri|pub] ObjectName"
+	print "Change an object's ACL"
+	if len(sys.argv) == 4:
+		bucket = conn.get_bucket(sys.argv[2])
+		acl_select = sys.argv[3]
+		hello_key = bucket
+	elif len(sys.argv) == 5:
+		bucket = conn.get_bucket(sys.argv[2])
+		acl_select = sys.argv[3]
+		object = sys.argv[4]
+		hello_key = bucket.get_key(object)
+	else:
+		print sys.argv[0],sys.argv[1],"Bucket_Name [pri|pub] ObjectName"
+	if acl_select == 'pub':
+		print "change to public-read"
+		hello_key.set_canned_acl('public-read')
+	elif acl_select == 'pri':
+		print "change to private"
+		hello_key.set_canned_acl('private')
+	else:
+		print "ACL no change"
 
 def url():
         print "Generate object download URLs"
